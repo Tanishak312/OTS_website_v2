@@ -1,6 +1,6 @@
 "use server";
 
-import { api, apiError } from "@/lib/api";
+import { api, apiError, visitorHeaders } from "@/lib/api";
 import { validatePayload, type RequestPayload } from "@/lib/selection";
 
 export type SubmitResult = { ok: true; token: string } | { ok: false; error: string };
@@ -17,7 +17,7 @@ export async function submitRequest(payload: RequestPayload): Promise<SubmitResu
   let res: Response;
   try {
     // The API saves, then sends the customer email before answering: give it time for both.
-    res = await api("/v1/requests", { method: "POST", body: payload, timeoutMs: 30_000 });
+    res = await api("/v1/requests", { method: "POST", body: payload, timeoutMs: 30_000, headers: await visitorHeaders() });
   } catch (e) {
     console.error("[submitRequest] API unreachable", e instanceof Error ? e.message : e);
     return { ok: false, error: "We couldn't send your request just now. Your details are still here, so please try again." };

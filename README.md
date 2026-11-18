@@ -24,7 +24,7 @@ admin   ──▶ backend /admin ───────────────�
 
 **The rule:** the website never talks to the database, R2 or email itself and holds no keys. It
 asks the backend. Anyone given the website code (e.g. to embed it in another site) gets nothing
-secret.
+secret. Embedding it elsewhere: see [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).
 
 ## Run locally
 

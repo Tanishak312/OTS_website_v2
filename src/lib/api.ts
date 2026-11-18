@@ -1,4 +1,5 @@
 import "server-only";
+import { headers } from "next/headers";
 
 // The website's only way to data: the backend (./backend, its /v1 API). This server never talks to
 // Supabase, R2 or Resend itself and holds none of their keys; it needs only OTS_API_URL, the
@@ -15,11 +16,28 @@ type ApiInit = {
   body?: unknown;
   /** Give up if the backend hasn't started answering by then. The body, once it flows, is not cut. */
   timeoutMs?: number;
+  /** Extra request headers, e.g. the visitor's IP (see visitorHeaders). */
+  headers?: Record<string, string>;
 };
+
+/**
+ * The visitor's address, for calls made on a visitor's behalf (the request form). The backend
+ * limits submissions per visitor; without this every visitor would look like this server, and
+ * ten submissions site-wide would lock everyone out for ten minutes.
+ */
+export async function visitorHeaders(): Promise<Record<string, string>> {
+  const h = await headers();
+  const out: Record<string, string> = {};
+  const fwd = h.get("x-forwarded-for");
+  const real = h.get("x-real-ip");
+  if (fwd) out["x-forwarded-for"] = fwd;
+  if (real) out["x-real-ip"] = real;
+  return out;
+}
 
 /** Calls the backend. Never throws for an HTTP error: returns the Response, so callers handle 4xx themselves. */
 export async function api(path: string, init: ApiInit = {}): Promise<Response> {
-  const headers: Record<string, string> = { accept: "application/json" };
+  const headers: Record<string, string> = { accept: "application/json", ...init.headers };
   if (init.body !== undefined) headers["content-type"] = "application/json";
   const giveUp = new AbortController();
   const timer = setTimeout(() => giveUp.abort(), init.timeoutMs ?? 15_000);

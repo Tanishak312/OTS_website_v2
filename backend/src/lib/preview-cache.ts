@@ -143,6 +143,43 @@ export function serveFile(file: string, size: number, range: string | null, head
   }
   headers.set("content-length", String(end - start + 1));
   if (method === "HEAD") return new Response(null, { status, headers });
-  const body = Readable.toWeb(createReadStream(file, { start, end })) as ReadableStream<Uint8Array>;
-  return new Response(body, { status, headers });
+  return new Response(fileBody(file, start, end), { status, headers });
+}
+
+/**
+ * The bytes start..end of a file as a web stream, read only as fast as the browser takes them.
+ * Not Readable.toWeb: when a browser lets go of a video mid-stream (seeking, scrolling past a card)
+ * it kept pushing into the closed stream and threw an uncaught "Controller is already closed",
+ * twice per abandoned request. Here a cancel stops the read and closes the file, and nothing is
+ * written after it.
+ */
+function fileBody(file: string, start: number, end: number): ReadableStream<Uint8Array> {
+  const node = createReadStream(file, { start, end, highWaterMark: 256 * 1024 });
+  const chunks = node[Symbol.asyncIterator]() as AsyncIterator<Buffer>;
+  let done = false;
+  return new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        try {
+          const next = await chunks.next();
+          if (done) return;
+          if (next.done) {
+            done = true;
+            controller.close();
+          } else {
+            controller.enqueue(next.value);
+          }
+        } catch (e) {
+          if (done) return;
+          done = true;
+          controller.error(e);
+        }
+      },
+      cancel() {
+        done = true;
+        node.destroy();
+      },
+    },
+    { highWaterMark: 0 },
+  );
 }

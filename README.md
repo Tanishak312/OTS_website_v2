@@ -101,6 +101,6 @@ cp .env.example .env && cp backend/.env.example backend/.env   # fill backend/.e
 docker compose up -d --build
 ```
 
-Website on port 5011, backend on 5021 (`network_mode: host`, Linux). Open 5011 to the world; open
+Website on port 5022, backend on 5021 (`network_mode: host`, Linux). Open 5022 to the world; open
 5021 only to the admin team or put it behind its own load balancer. Images are built without keys;
 settings are read when the containers start.

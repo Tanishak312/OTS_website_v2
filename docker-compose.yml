@@ -26,7 +26,7 @@ services:
     image: ots-web
     env_file: ./.env
     environment:
-      PORT: "5011"
+      PORT: "5022"
       OTS_API_URL: http://127.0.0.1:5021
     network_mode: host
     depends_on:

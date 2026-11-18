@@ -1,0 +1,37 @@
+# Website + backend on one machine (e.g. an EC2 instance). On ECS, two task definitions replace this.
+#   cp .env.example .env                  (PORT, OTS_API_URL - no secrets)
+#   cp backend/.env.example backend/.env  (every credential)
+#   docker compose up -d --build
+#
+# network_mode: host - both listen straight on the machine's ports, and the website reaches the
+# backend at 127.0.0.1. (A compose network fails on hosts whose address pools are already fully
+# subnetted, which is why the old setup used the default bridge.) Linux hosts only.
+# Open the website's port to the world. Open the backend's port only to whoever uses the admin
+# portal (or put it behind its own load balancer); the website never needs it public.
+services:
+  ots-backend:
+    build: ./backend
+    image: ots-backend
+    env_file: ./backend/.env
+    environment:
+      PORT: "5021"
+      COOKIE_SECURE: "true"
+    network_mode: host
+    volumes:
+      - ots-preview-cache:/app/cache
+    restart: unless-stopped
+
+  ots-web:
+    build: .
+    image: ots-web
+    env_file: ./.env
+    environment:
+      PORT: "5011"
+      OTS_API_URL: http://127.0.0.1:5021
+    network_mode: host
+    depends_on:
+      - ots-backend
+    restart: unless-stopped
+
+volumes:
+  ots-preview-cache:

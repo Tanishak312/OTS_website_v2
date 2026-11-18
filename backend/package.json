@@ -1,0 +1,28 @@
+{
+  "name": "ots-backend",
+  "private": true,
+  "version": "0.2.0",
+  "description": "OTS backend: the API (/v1/*) and the admin portal (/admin). The only part that holds credentials.",
+  "scripts": {
+    "dev": "node scripts/next.mjs dev 5021",
+    "build": "next build",
+    "start": "node scripts/next.mjs start 5021",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
+    "hono": "^4.6.14",
+    "next": "^15.5.28",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}

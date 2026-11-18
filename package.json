@@ -1,0 +1,31 @@
+{
+  "name": "ots-platform",
+  "private": true,
+  "version": "0.2.0",
+  "description": "OTS website (this folder) and its backend (./backend: API + admin portal, holds every credential).",
+  "scripts": {
+    "setup": "npm install && npm --prefix backend install",
+    "dev": "node scripts/next.mjs dev 3010",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:all": "node scripts/dev-all.mjs",
+    "build": "next build",
+    "build:backend": "npm --prefix backend run build",
+    "start": "node scripts/next.mjs start 3010",
+    "start:backend": "npm --prefix backend run start",
+    "typecheck": "tsc --noEmit",
+    "typecheck:backend": "npm --prefix backend run typecheck"
+  },
+  "dependencies": {
+    "next": "^15.5.28",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}

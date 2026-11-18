@@ -32,6 +32,8 @@ secret. Embedding it elsewhere: see [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND
 npm run setup                          # installs the website and the backend
 cp .env.example .env                   # PORT=3010, OTS_API_URL=http://127.0.0.1:5021
 cp backend/.env.example backend/.env   # then fill in the keys
+# The same OTS_INTERNAL_KEY in both .env files (the backend takes the request form only with it):
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm run dev:all                        # both together: website :3010, backend :5021
 ```
 
@@ -67,6 +69,11 @@ Errors are always `{ "error": "<message written for people>" }`.
 The admin portal's own pages call the same code directly (no network hop), with the same checks:
 what an admin may read and change is enforced in Postgres (row-level security and the `set_ots_*`
 functions). Only the Supabase anon key is used, never the service role.
+
+Admin sign-in lasts one visit: closing the browser, or `ADMIN_IDLE_MINUTES` (default 10) without
+a page load, signs the admin out and the password is asked again. Session cookies are httpOnly and
+Secure. `POST /v1/requests` is accepted only with the shared `OTS_INTERNAL_KEY`, so only the
+website can submit requests.
 
 ## Speed
 

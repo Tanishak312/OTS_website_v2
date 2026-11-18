@@ -20,18 +20,32 @@ type ApiInit = {
   headers?: Record<string, string>;
 };
 
+const PRIVATE = /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|f[cd][0-9a-f]{2}:|fe80:|::ffff:(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.))/i;
+
 /**
- * The visitor's address, for calls made on a visitor's behalf (the request form). The backend
- * limits submissions per visitor; without this every visitor would look like this server, and
- * ten submissions site-wide would lock everyone out for ten minutes.
+ * The visitor's address: the right-most PUBLIC entry of X-Forwarded-For. Each proxy appends the
+ * address it saw, so that is the one our own load balancer added; entries to its left came from
+ * the visitor and can be made up. (All private = a local run: the right-most entry.)
+ */
+function visitorIp(xff: string | null, realIp: string | null): string | null {
+  const hops = (xff ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  for (let i = hops.length - 1; i >= 0; i--) if (!PRIVATE.test(hops[i])) return hops[i];
+  return hops[hops.length - 1] ?? realIp?.trim() ?? null;
+}
+
+/**
+ * Headers for calls made on a visitor's behalf (the request form): the shared OTS_INTERNAL_KEY,
+ * which the backend requires before it accepts a submission, and the visitor's address for its
+ * per-visitor limit (without it every visitor would look like this server, and ten submissions
+ * site-wide would lock everyone out).
  */
 export async function visitorHeaders(): Promise<Record<string, string>> {
   const h = await headers();
   const out: Record<string, string> = {};
-  const fwd = h.get("x-forwarded-for");
-  const real = h.get("x-real-ip");
-  if (fwd) out["x-forwarded-for"] = fwd;
-  if (real) out["x-real-ip"] = real;
+  const key = process.env.OTS_INTERNAL_KEY?.trim();
+  if (key) out["x-ots-internal-key"] = key;
+  const ip = visitorIp(h.get("x-forwarded-for"), h.get("x-real-ip"));
+  if (ip) out["x-ots-client-ip"] = ip;
   return out;
 }
 

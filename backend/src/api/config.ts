@@ -20,8 +20,13 @@ export const config = {
   corsOrigins: list(process.env.CORS_ORIGINS),
   /** Mark the admin session cookie Secure (HTTPS only). On by default; turn off only for local http. */
   cookieSecure: process.env.COOKIE_SECURE !== "false",
-  /** Behind a load balancer / proxy that sets X-Forwarded-For: trust it for the client IP (rate limits). */
-  trustProxy: process.env.TRUST_PROXY !== "false",
+  /**
+   * Shared with the OTS website (its OTS_INTERNAL_KEY). Only a caller holding it may submit requests
+   * and vouch for the visitor's IP. Unset: refused in production, allowed with a warning in development.
+   */
+  internalKey: process.env.OTS_INTERNAL_KEY?.trim() || "",
+  /** Admin portal: minutes without a page load before the admin must sign in again. */
+  adminIdleMinutes: num(process.env.ADMIN_IDLE_MINUTES, 10),
   /** Request submissions allowed per client IP per window. */
   submitLimit: num(process.env.SUBMIT_LIMIT, 10),
   submitWindowMs: num(process.env.SUBMIT_WINDOW_S, 600) * 1000,

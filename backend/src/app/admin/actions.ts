@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { seenCookie, seenCookieCleared } from "@/lib/admin-session";
 import { adminClient } from "@/lib/supabase";
 import { cleanAccess, emailBucketAccess, emailCustomer, validateAccess } from "@/lib/delivery";
 import { sampleByBucket, type OtsRequest, type RequestStatus } from "@/lib/status";
@@ -48,12 +50,15 @@ export async function signIn(_prev: ActionState, form: FormData): Promise<Action
       error: `${auth.user?.email ?? "This account"} can sign in, but it isn't on the OTS admin list yet. Add it to ots_admins (see README), then try again.`,
     };
   }
+  // Starts the visit's clock: idle longer than ADMIN_IDLE_MINUTES and the password is asked again.
+  (await cookies()).set(seenCookie());
   redirect(safeNext(form.get("next")));
 }
 
 export async function signOut() {
   const supabase = await adminClient();
   await supabase.auth.signOut();
+  (await cookies()).set(seenCookieCleared());
   redirect("/admin/login");
 }
 

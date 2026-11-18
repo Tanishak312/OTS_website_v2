@@ -24,6 +24,7 @@ import {
   validatePayload,
   type RequestPayload,
 } from "@/lib/selection";
+import { isInternal } from "@/api/client-ip";
 import { allow, clientIp } from "@/api/rate-limit";
 import { kioskClient } from "@/api/supabase";
 
@@ -103,7 +104,20 @@ function toPayload(body: unknown): RequestPayload | null {
  * message written for the visitor. The customer email goes out after the save; a failed email
  * doesn't fail the request (it shows on the admin page).
  */
+let warnedNoKey = false;
+
 publicRoutes.post("/requests", async (c) => {
+  // Only the OTS website's server may submit: it holds OTS_INTERNAL_KEY. A script calling this API
+  // directly can't send requests (and emails to any address it likes), or dodge the per-visitor limit.
+  if (config.internalKey) {
+    if (!isInternal(c)) return c.json({ error: "Requests are accepted from the OTS website only." }, 403);
+  } else if (process.env.NODE_ENV === "production") {
+    console.error("[requests] OTS_INTERNAL_KEY is not set: refusing submissions (set the same value on the website and the backend)");
+    return c.json({ error: "The request system isn't set up yet. Please tell the booth team." }, 503);
+  } else if (!warnedNoKey) {
+    warnedNoKey = true;
+    console.warn("[requests] OTS_INTERNAL_KEY is not set: accepting submissions from anyone (development only)");
+  }
   if (!allow("submit", clientIp(c), config.submitLimit, config.submitWindowMs)) {
     return c.json({ error: "Too many requests from here. Wait a few minutes, then try again." }, 429);
   }

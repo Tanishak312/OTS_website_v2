@@ -16,11 +16,11 @@ export function adminClient(c: Context) {
     cookies: {
       getAll: () => Object.entries(getCookie(c)).map(([name, value]) => ({ name, value })),
       setAll: (toSet) => {
+        // Same as the admin portal's (lib/admin-session.ts): hardened, and gone when the browser closes.
         for (const { name, value, options } of toSet) {
           setCookie(c, name, value, {
             path: "/",
-            maxAge: options?.maxAge,
-            expires: options?.expires,
+            ...(options?.maxAge === 0 ? { maxAge: 0 } : {}),
             httpOnly: true,
             secure: config.cookieSecure,
             sameSite: "Lax",

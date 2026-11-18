@@ -23,6 +23,7 @@ API key or token is needed on the frontend side.
 | Variable | Where | Value |
 |---|---|---|
 | `OTS_API_URL` | frontend server only | The backend's address as the frontend **server** reaches it, e.g. `http://10.0.1.23:5021` or an internal load balancer. **Never** prefix it `NEXT_PUBLIC_` (it would ship to browsers). No trailing slash needed. |
+| `OTS_INTERNAL_KEY` | frontend server only | Shared secret, the same value as the backend's. The backend accepts the request form only from a caller that sends it (§3.4). Ask the OTS team for it; never prefix it `NEXT_PUBLIC_`, never log it. |
 | `PORT` | frontend server | Port to listen on (only with `npm run dev` / `npm start` from this repo). |
 
 Run the frontend and backend **in the same region**: page renders call the backend, and a
@@ -119,6 +120,7 @@ The form's submit: a full-dataset or free-sample request.
 |---|---|---|
 | `201` | `{ "token": "OTS-…" }` | Saved; the customer email has been sent (or the failure is recorded for the admins) |
 | `400` | `{ error }` | Body unreadable |
+| `403` | `{ error }` | `X-OTS-Internal-Key` missing or wrong |
 | `413` | `{ error }` | Body over 64 KB |
 | `422` | `{ error }` | A choice or a contact field is invalid (message says which) |
 | `429` | `{ error }` | More than 10 submissions from this visitor in 10 minutes |
@@ -126,10 +128,15 @@ The form's submit: a full-dataset or free-sample request.
 
 - Caller: the server action `submitRequest` (`src/app/actions.ts`). Timeout 30 s (it saves, then
   sends an email before answering). The form keeps what was typed on any error.
-- **Forward the visitor's IP**: send the incoming `X-Forwarded-For` (and `X-Real-IP`) to the
-  backend, as `visitorHeaders()` in `src/lib/api.ts` does. The 10-per-10-minutes limit is per
-  visitor; without the header every visitor looks like the frontend server and ten submissions
-  site-wide lock everyone out.
+- **Send two headers**, as `visitorHeaders()` in `src/lib/api.ts` does:
+  - `X-OTS-Internal-Key: <OTS_INTERNAL_KEY>`: without it the backend answers `403`. This is what
+    stops anyone from calling the backend directly to send requests (and emails) or to dodge the
+    limit.
+  - `X-OTS-Client-IP: <visitor's IP>`: the 10-per-10-minutes limit is per visitor; without it
+    every visitor looks like the frontend server and ten submissions site-wide lock everyone out.
+    Take the right-most **public** address in the incoming `X-Forwarded-For` (the one your load
+    balancer added; entries to its left come from the visitor and can be faked). So the frontend
+    must sit behind a load balancer or reverse proxy that appends to `X-Forwarded-For`.
 - Never retry automatically and never cache it: each call can create a request and send an email.
 - The backend recomputes the hours itself; the frontend's numbers are for display only.
 
